@@ -1,0 +1,165 @@
+
+유저 관련 테이블 묶음
+-- 1) 외래키로 참조할 테이블부터 생성
+CREATE TABLE student_status (
+  status_id INT PRIMARY KEY,          -- 학적 구분 고유 ID
+  code      VARCHAR(20) UNIQUE,       -- 코드명 (ex: '재학생','신입생')
+  name      VARCHAR(50)               -- 설명명
+) ENGINE=InnoDB;
+
+CREATE TABLE admission_round (
+  round_id INT PRIMARY KEY,           -- 모집 차수 고유 ID
+  code     VARCHAR(20) UNIQUE,        -- 코드명 (ex: '수시1차','정시')
+  name     VARCHAR(50)                -- 차수 설명
+)ENGINE=InnoDB;
+
+-- 4) 지역별 거리 점수 테이블
+CREATE TABLE regions (
+  region_id      INT PRIMARY KEY,     -- 지역 고유 ID
+  region_name    VARCHAR(50),         -- 지역명 (ex: '1지역','2지역')
+  distance_score INT                   -- 거리 점수 (10/20/30 등)
+)ENGINE=InnoDB;
+
+-- 2) users 테이블 생성
+CREATE TABLE users (
+  user_id             BIGINT PRIMARY KEY AUTO_INCREMENT,  -- 사용자 고유 ID
+  student_number      VARCHAR(20) UNIQUE NOT NULL,         -- 학번 (학생 식별용)
+  name                VARCHAR(50) NOT NULL,               -- 학생 이름
+  birth_date          DATE NOT NULL,                      -- 생년월일 (동점자·연소자 기준)
+  gender              CHAR(1) NOT NULL,                   -- 성별 ('M'/'F')
+  status_id           INT NOT NULL,                       -- 학적 구분 FK (student_status)
+  admission_round_id  INT NULL,                           -- 신입생 모집 차수 FK (admission_round)
+  international       BOOLEAN DEFAULT FALSE,              -- 외국인 유학생 여부
+  region_id           INT NOT NULL,                       -- 지역 구분 FK (regions)
+  address             VARCHAR(200),                       -- 현재 거주지 주소
+  created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,  -- 레코드 생성 시각
+  updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- 수정 시각
+  FOREIGN KEY (status_id) REFERENCES student_status(status_id),
+  FOREIGN KEY (admission_round_id) REFERENCES admission_round(round_id),
+  FOREIGN KEY (region_id) REFERENCES regions(region_id)
+)ENGINE=InnoDB;
+
+-- 3) users를 참조하는 나머지 테이블들
+CREATE TABLE health_discipline (
+  user_id                BIGINT PRIMARY KEY,
+  has_infectious_disease BOOLEAN DEFAULT FALSE,
+  forced_expulsion       BOOLEAN DEFAULT FALSE,
+  academic_discipline    BOOLEAN DEFAULT FALSE,
+  penalty_points         INT DEFAULT 0,
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
+) ENGINE=InnoDB;
+
+-- 5) 연락처/주소 변경 이력 테이블
+CREATE TABLE user_contact (
+  contact_id    BIGINT PRIMARY KEY AUTO_INCREMENT,  -- 이력 고유 ID
+  user_id       BIGINT NOT NULL,                    -- 사용자 FK (users)
+  contact_type  VARCHAR(20) NOT NULL,               -- 변경 유형 ('mobile','home','address')
+  contact_value VARCHAR(200),                       -- 변경된 연락처 또는 주소 값
+  updated_at    DATETIME NOT NULL,                  -- 변경 일시
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- 6) 우선선발 기준 코드 테이블
+CREATE TABLE priority_criteria (
+  criteria_id INT PRIMARY KEY,       -- 우선 기준 고유 ID
+  code        VARCHAR(20) UNIQUE,    -- 코드명 (ex: 'veteran_child','disabled')
+  name        VARCHAR(100)           -- 기준 설명
+)ENGINE=InnoDB;
+
+-- 7) 사용자-우선선발 기준 매핑 테이블
+CREATE TABLE user_priority (
+  user_id         BIGINT NOT NULL,   -- 사용자 FK (users)
+  criteria_id     INT NOT NULL,      -- 우선 기준 FK (priority_criteria)
+  proof_submitted DATE,              -- 증빙서류 제출일
+  PRIMARY KEY (user_id, criteria_id),
+  FOREIGN KEY (user_id) REFERENCES users(user_id),
+  FOREIGN KEY (criteria_id) REFERENCES priority_criteria(criteria_id)
+)ENGINE=InnoDB;
+
+-- 9) 성적·입사 이력 정보 테이블
+CREATE TABLE academic_record (
+  user_id                BIGINT PRIMARY KEY,  -- 사용자 FK (users)
+  previous_semester_gpa  DECIMAL(3,2),        -- 직전 학기 평점 (0.00~4.30 등)
+  admission_score        INT,                 -- 입학성적 점수 (신입생)
+  residency_semesters     INT,                 -- 과거 입사 학기 수
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
+)ENGINE=InnoDB;
+
+-- 10) 입사신청 기간 관리 테이블
+CREATE TABLE application_period (
+  period_id   INT PRIMARY KEY,       -- 기간 고유 ID
+  name        VARCHAR(100),          -- 기간명 (ex: '재학생 2024-2학기')
+  start_date  DATE NOT NULL,         -- 신청 시작일
+  end_date    DATE NOT NULL          -- 신청 종료일
+)ENGINE=InnoDB;
+
+-- 11) 실제 입사신청 내역 테이블
+CREATE TABLE dorm_application (
+  application_id   BIGINT PRIMARY KEY AUTO_INCREMENT, -- 신청 고유 ID
+  user_id          BIGINT NOT NULL,                   -- 사용자 FK (users)
+  period_id        INT NOT NULL,                      -- 기간 FK (application_period)
+  applied_at       DATETIME DEFAULT CURRENT_TIMESTAMP, -- 신청 일시
+  proof_submitted  BOOLEAN DEFAULT FALSE,             -- 증빙 제출 여부
+  FOREIGN KEY (user_id) REFERENCES users(user_id),
+  FOREIGN KEY (period_id) REFERENCES application_period(period_id)
+)ENGINE=InnoDB;
+
+-- 12) 관생 선발 결과 테이블
+CREATE TABLE selection_result (
+  user_id         BIGINT PRIMARY KEY,    -- 사용자 FK (users)
+  period_id       INT NOT NULL,          -- 기간 FK (application_period)
+  selection_score DECIMAL(6,2),         -- 환산 총점
+  selection_rank  INT,                   -- 선발 순위
+  selected        BOOLEAN,               -- 선발 여부
+  notified_at     DATETIME,              -- 통지 일시
+  FOREIGN KEY (user_id) REFERENCES users(user_id),
+  FOREIGN KEY (period_id) REFERENCES application_period(period_id)
+)ENGINE=InnoDB;
+
+-- 1) 역할(role) 정의 테이블
+CREATE TABLE roles (
+  role_id   INT PRIMARY KEY AUTO_INCREMENT,  -- 역할 고유 ID
+  code      VARCHAR(20) UNIQUE NOT NULL,     -- 코드명 (ex: 'STUDENT','ADMIN','PROFESSOR')
+  name      VARCHAR(50) NOT NULL             -- 역할명 (ex: '학생','관리자','교수')
+) ENGINE=InnoDB;
+
+-- 2) users 테이블에 role_id 컬럼 추가
+ALTER TABLE users
+  ADD COLUMN role_id INT NOT NULL DEFAULT 1 COMMENT '사용자 역할 FK (roles)',
+  ADD FOREIGN KEY (role_id) REFERENCES roles(role_id);
+
+
+정의된 eum값들
+INSERT INTO roles (code, name) VALUES
+  ('STUDENT',   '학생'),
+  ('ADMIN',     '관리자'),
+  ('PROFESSOR', '교수');
+
+INSERT INTO student_status (status_id, code, name) VALUES
+  (1, 'STUDENT',   '재학생'),
+  (2, 'NEW',       '신입생'),
+  (3, 'TRANSFER',  '편입생'),
+  (4, 'GRADUATE',  '대학원생');
+
+INSERT INTO regions (region_id, region_name, distance_score) VALUES
+    (1, '1지역', 10),
+  (2, '2지역', 20),
+  (3, '3지역', 30);
+
+INSERT INTO admission_round (round_id, code, name) VALUES
+  (1, 'EARLY_DEC', '재학생 12월 신청'),
+  (2, 'SUSHI1',    '수시1차'),
+  (3, 'SUSHI2',    '수시2차'),
+  (4, 'SUSHI3',    '수시3차'),
+  (5, 'JEONGSI',   '정시');
+
+INSERT INTO priority_criteria (criteria_id, code, name) VALUES
+  (1, 'VETERAN_CHILD',  '국가보훈대상 자녀'),
+  (2, 'MULTI_CHILD',    '동일가구 2자녀 이상'),
+  (3, 'DISABLED',       '장애인'),
+  (4, 'DORM_LEADER',    '관생장 이력'),
+  (5, 'ASSIST_LEADER',  '부관생장 이력'),
+  (6, 'COMMITTEE',      '자치위원 1년 활동'),
+  (7, 'ATHLETE',        '체육특기자 추천'),
+  (8, 'ROTC',           '학군사관 후보생 추천'),
+  (9, 'FOSTER_CHILD',   '보호종료아동');

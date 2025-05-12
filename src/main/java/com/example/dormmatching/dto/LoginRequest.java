@@ -1,8 +1,14 @@
-/* dto/LoginRequest.java */
+// LoginRequest.java
 package com.example.dormmatching.dto;
-import jakarta.validation.constraints.NotBlank;
 
-public record LoginRequest(
-        @NotBlank String identifier,
-        @NotBlank String password
-) {}
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class LoginRequest {
+    @NotBlank
+    private String studentNumber;
+
+    @NotBlank
+    private String password;
+}

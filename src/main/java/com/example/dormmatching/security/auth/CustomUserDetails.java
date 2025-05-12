@@ -1,27 +1,27 @@
 package com.example.dormmatching.security.auth;
 
-import com.example.dormmatching.entity.UserEntity;
+import com.example.dormmatching.entity.user.User;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
 
+@RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
-    private final UserEntity user;
+    private final User user;
 
-    public CustomUserDetails(UserEntity user) {
-        this.user = user;
-    }
-
-    // 권한이 따로 없으면 빈 리스트 반환
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList();
+        return Collections.singletonList(
+                new SimpleGrantedAuthority("ROLE_" + user.getRole().getCode())
+        );
     }
 
     @Override public String getPassword()    { return user.getPassword(); }
-    @Override public String getUsername()    { return user.getIdentifier(); }
+    @Override public String getUsername()    { return user.getStudentNumber(); }
     @Override public boolean isAccountNonExpired()     { return true; }
     @Override public boolean isAccountNonLocked()      { return true; }
     @Override public boolean isCredentialsNonExpired() { return true; }
