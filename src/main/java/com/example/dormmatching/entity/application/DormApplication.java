@@ -8,10 +8,11 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Setter
 @Getter
+@Setter
 @Table(name = "dorm_application")
 public class DormApplication {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "application_id")
@@ -30,6 +31,4 @@ public class DormApplication {
 
     @Column(name = "proof_submitted")
     private Boolean proofSubmitted;
-
-    // getters and setters...
 }

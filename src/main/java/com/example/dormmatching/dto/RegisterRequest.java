@@ -48,5 +48,5 @@ public class RegisterRequest {
     private Integer departmentId;
 
     @NotNull
-    private Integer grade;    // CSV에서 받아올 학년 정보
+    private Integer grade;
 }

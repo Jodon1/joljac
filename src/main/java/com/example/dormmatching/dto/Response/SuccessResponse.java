@@ -14,4 +14,5 @@ public class SuccessResponse<T> {
     private boolean success; // 처리 성공 여부 (항상 true)
     private String message;  // 결과 메시지
     private T data;          // 실제 응답 데이터
+
 }

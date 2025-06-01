@@ -10,18 +10,13 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByStudentNumber(String studentNumber);
-    Optional<User> findByRefreshToken(String refreshToken);
 
-    /**
-     * statusId = 1 (재학생) 이고,
-     * u.applications.period.periodId = :periodId 인 User 를 모두 조회
-     */
     @Query("""
       SELECT u
       FROM User u
       JOIN u.applications da
-      WHERE u.status.statusId = 1
-        AND da.period.periodId = :periodId
+      WHERE da.period.periodId = :periodId
+        AND u.status.statusId IN (1, 2, 3, 4)
     """)
     List<User> findEnrolledStudentsByPeriod(@Param("periodId") Integer periodId);
 }

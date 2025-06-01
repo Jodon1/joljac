@@ -8,21 +8,30 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Setter
-@Getter
 @Table(name = "selection_result")
+@Getter @Setter
 public class SelectionResult {
 
+    // ① 자동 생성되는 기본키(selection_id)를 새로 만들어 준다.
     @Id
-    @Column(name = "user_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "selection_id")
+    private Long selectionId;
+
+    // ② userId는 더 이상 @Id가 아니므로 그냥 일반 컬럼으로 선언
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @OneToOne
-    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "period_id", nullable = false)
+    // ③ periodId도 일반 컬럼으로 선언
+    @Column(name = "period_id", nullable = false)
+    private Integer periodId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "period_id", insertable = false, updatable = false)
     private ApplicationPeriod period;
 
     @Column(name = "selection_score")

@@ -1,0 +1,84 @@
+<!-- src/main/resources/templates/admin/dashboard.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(~{::title}, 'Admin Dashboard')}"></head>
+<body>
+<!-- 헤더(navbar)는 fragments/head에서 포함되므로 여기에 써주지 않아도 됩니다. -->
+<div class="mt-4">
+    <h3>안녕하세요, 관리자 <span th:text="${#authentication.name}">AdminUser</span>님</h3>
+    <p>아래 메뉴를 선택하여 각종 설정을 관리하세요.</p>
+</div>
+
+<div class="row mt-4">
+    <!-- 예시: 지원 기간 관리 -->
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">지원 기간 관리</h5>
+                <p class="card-text">기숙사 지원 시작/종료 기간을 설정하거나 수정합니다.</p>
+                <a th:href="@{/admin/application-periods}" class="btn btn-outline-primary btn-block">
+                    이동
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 예시: 기숙사 정원 관리 -->
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">기숙사 정원 관리</h5>
+                <p class="card-text">단과대/차수별 기숙사 정원을 설정합니다.</p>
+                <a th:href="@{/admin/dorm-capacities}" class="btn btn-outline-primary btn-block">
+                    이동
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 예시: 우선순위 기준 관리 -->
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">우선순위 기준 관리</h5>
+                <p class="card-text">지역, 장애, 형제 재학 등 우선순위 항목을 설정합니다.</p>
+                <a th:href="@{/admin/priority-criteria}" class="btn btn-outline-primary btn-block">
+                    이동
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <!-- 예시: 사용자(학생) 관리 -->
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">사용자 관리</h5>
+                <p class="card-text">등록된 학생 계정을 조회, 수정, 삭제합니다.</p>
+                <a th:href="@{/admin/users}" class="btn btn-outline-primary btn-block">
+                    이동
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 예시: 선발 결과 조회 -->
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">선발 결과 확인</h5>
+                <p class="card-text">지원자별 선발 결과를 조회합니다.</p>
+                <a th:href="@{/admin/selection-results}" class="btn btn-outline-primary btn-block">
+                    이동
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 공통 footer 삽입 -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

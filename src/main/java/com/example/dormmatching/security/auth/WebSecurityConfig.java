@@ -1,39 +1,40 @@
-/*package com.example.dormmatching.security.auth;
+package com.example.dormmatching.security.auth;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @RequiredArgsConstructor
 @Configuration
-@EnableWebSecurity
-public class SecurityConfig {
+public class WebSecurityConfig {
 
-    private final JwtAuthenticationFilter jwtFilter;   // 기존에 작성하신 JWT 필터
-    private final CustomUserDetailsService userDetailsService; // UserDetailsService 구현체
+    private final CustomUserDetailsService userDetailsService;
 
+    /**
+     * 1순위 필터 체인: “웹(Thymeleaf) 전용” 보안 설정
+     *   - 이 체인은 오직 /admin/** 와 정적 리소스만 처리한다.
+     */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
+        // 이 체인이 적용될 URL 패턴을 제한
         http
-                // CSRF 비활성화
+                .securityMatcher("/admin/**", "/css/**", "/js/**", "/images/**", "/logout", "/admin/login")
+                //   ↑ 웹 로그인 및 대시보드, 로그아웃, 정적 리소스를 여기서만 처리
+
+                // CSRF 비활성화 (필요에 따라 켤 수도 있음)
                 .csrf(csrf -> csrf.disable())
 
-                // 세션 사용하지 않음 (JWT 기준)
-                .sessionManagement(sm -> sm.sessionCreationPolicy(
-                        SessionCreationPolicy.STATELESS))
-
-                // 1) URL별 권한 설정
+                // 세션은 Stateful(기본값)
                 .authorizeHttpRequests(auth -> auth
-                        // (1) 로그인 페이지 및 정적 리소스는 무조건 허용
+                        // 정적 리소스 및 로그인 페이지는 모두 허용
                         .requestMatchers(
                                 "/admin/login",
                                 "/css/**",
@@ -41,24 +42,10 @@ public class SecurityConfig {
                                 "/images/**"
                         ).permitAll()
 
-                        // (2) /admin/** 나머지는 ROLE_ADMIN만 허용
+                        // /admin/**(로그인 이후) 는 반드시 ADMIN 권한 필요
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-
-                        // (3) JWT 없이 허용할 API
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
-
-                        // (4) /api/** 요청은 인증 필요 (JWT 필터 거침)
-                        .requestMatchers("/api/**").authenticated()
-
-                        // (5) 나머지 요청도 모두 인증 필요
-                        .anyRequest().authenticated()
                 )
-
-                // 2) 폼 로그인 설정
+                // 폼 로그인 설정
                 .formLogin(form -> form
                         .loginPage("/admin/login")             // GET: 로그인 폼
                         .loginProcessingUrl("/admin/login")    // POST: 로그인 폼 제출
@@ -67,31 +54,28 @@ public class SecurityConfig {
                         .usernameParameter("username")
                         .passwordParameter("password")
                 )
-
-                // 3) 로그아웃 설정
+                // 로그아웃 설정
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/admin/login?logout")
                         .invalidateHttpSession(true)
                 )
-
-                // 4) JWT 필터를 폼 인증 필터 앞에 등록
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                // UserDetailsService 지정 (로그인 인증 시 사용)
+                .userDetailsService(userDetailsService);
 
         return http.build();
     }
 
-    // AuthenticationManager 빈 등록 (UserDetailsService + PasswordEncoder가 필요할 때 사용)
+    // AuthenticationManager 빈 등록 (폼 로그인에서 필요)
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration cfg) throws Exception {
         return cfg.getAuthenticationManager();
     }
 
-    // UserDetailsService + PasswordEncoder 설정
+    // 비밀번호 암호화
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 }
-*/

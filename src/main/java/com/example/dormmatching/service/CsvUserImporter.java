@@ -1,4 +1,4 @@
-package com.example.dormmatching.service;
+/*package com.example.dormmatching.service;
 
 import com.example.dormmatching.dto.RegisterRequest;
 import com.example.dormmatching.service.auth.AuthService;
@@ -70,3 +70,4 @@ public class CsvUserImporter implements CommandLineRunner {
         }
     }
 }
+*/

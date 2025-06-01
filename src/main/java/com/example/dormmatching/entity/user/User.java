@@ -5,13 +5,10 @@ import com.example.dormmatching.entity.application.SelectionResult;
 import com.example.dormmatching.entity.record.AcademicRecord;
 import com.example.dormmatching.entity.record.HealthDiscipline;
 import com.example.dormmatching.entity.support.*;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 
@@ -19,7 +16,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
-// User.java
 @Entity
 @Setter
 @Getter
@@ -68,9 +64,6 @@ public class User {
     @Column(length = 200)
     private String address;
 
-    @Column(name = "grade", nullable = false)
-    private Integer grade;
-
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -110,4 +103,6 @@ public class User {
     @JoinColumn(name = "department_id")
     private Department department;
 
+    @Column(name = "grade")
+    private Integer grade; // 새로 추가한 컬럼
 }

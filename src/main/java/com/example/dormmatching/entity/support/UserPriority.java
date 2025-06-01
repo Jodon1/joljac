@@ -13,6 +13,7 @@ import java.time.LocalDate;
 @Table(name = "user_priority")
 @IdClass(UserPriorityId.class)
 public class UserPriority {
+
     @Id
     @Column(name = "user_id")
     private Long userId;
@@ -29,10 +30,6 @@ public class UserPriority {
     @JoinColumn(name = "criteria_id", insertable = false, updatable = false)
     private PriorityCriteria criteria;
 
-    /**
-     * proof_submitted 칼럼이 LocalDate 형식으로 들어오며,
-     * NULL이 아니면 “증빙서류 제출됨”으로 간주합니다.
-     */
     @Column(name = "proof_submitted")
     private LocalDate proofSubmitted;
 }
