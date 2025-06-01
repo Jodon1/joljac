@@ -2,8 +2,7 @@ package com.example.dormmatching.repository;
 
 import com.example.dormmatching.entity.application.SelectionResult;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.List;
 
 public interface SelectionResultRepository extends JpaRepository<SelectionResult, Long> {
-    List<SelectionResult> findAllByPeriodPeriodId(Integer periodId);
+    // 필요 시 추가 메서드 선언 가능
 }

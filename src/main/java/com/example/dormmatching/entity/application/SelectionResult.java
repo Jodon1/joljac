@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @Getter
 @Table(name = "selection_result")
 public class SelectionResult {
+
     @Id
     @Column(name = "user_id")
     private Long userId;
@@ -35,6 +36,4 @@ public class SelectionResult {
 
     @Column(name = "notified_at")
     private LocalDateTime notifiedAt;
-
-    // getters and setters...
 }

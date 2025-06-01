@@ -68,6 +68,9 @@ public class User {
     @Column(length = 200)
     private String address;
 
+    @Column(name = "grade", nullable = false)
+    private Integer grade;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

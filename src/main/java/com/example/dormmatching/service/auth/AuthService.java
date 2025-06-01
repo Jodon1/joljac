@@ -63,6 +63,7 @@ public class AuthService {
         user.setInternational(req.getInternational());
         user.setPhoneNumber(req.getPhoneNumber());
         user.setDepartment(dept);
+        user.setGrade(req.getGrade());
 
         // 초기 비밀번호 설정 로직 등 나머지 처리...
         userRepository.save(user);
