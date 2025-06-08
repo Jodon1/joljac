@@ -1,5 +1,6 @@
 package com.example.dormmatching.entity.application;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;  // 추가
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -9,6 +10,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+@JsonIgnoreProperties({ "users", "hibernateLazyInitializer", "handler" })
 @Entity
 @Getter
 @Setter
@@ -17,7 +19,7 @@ public class ApplicationPeriod {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "period_id")
+    @Column(name = "period_id", nullable = false)
     private Integer periodId;
 
     @Column(name = "name", nullable = false, length = 100)

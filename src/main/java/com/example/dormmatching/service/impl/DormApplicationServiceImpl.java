@@ -8,10 +8,13 @@ import com.example.dormmatching.repository.ApplicationPeriodRepository;
 import com.example.dormmatching.repository.DormApplicationRepository;
 import com.example.dormmatching.repository.UserRepository;
 import com.example.dormmatching.service.DormApplicationService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Transactional
@@ -63,5 +66,17 @@ public class DormApplicationServiceImpl implements DormApplicationService {
                 .orElseThrow(() -> new RuntimeException("해당 신청 내역이 없습니다."));
         applicationRepository.delete(da);
         return true;
+    }
+    @Override
+    public List<DormApplication> getApplicationsByPeriod(Integer periodId) {
+        periodRepository.findById(periodId)
+                .orElseThrow(() -> new IllegalArgumentException("ApplicationPeriod not found: " + periodId));
+        return applicationRepository.findDistinctByPeriodPeriodId(periodId);
+    }
+    @Override
+    public Page<DormApplication> getApplicationsByPeriod(Integer periodId, Pageable pageable) {
+        periodRepository.findById(periodId)
+                .orElseThrow(() -> new IllegalArgumentException("ApplicationPeriod not found: " + periodId));
+        return applicationRepository.findDistinctByPeriodPeriodId(periodId, pageable);
     }
 }

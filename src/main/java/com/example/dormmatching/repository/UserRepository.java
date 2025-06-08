@@ -1,9 +1,11 @@
 package com.example.dormmatching.repository;
 
 import com.example.dormmatching.entity.user.User;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,4 +21,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
         AND u.status.statusId IN (1, 2, 3, 4)
     """)
     List<User> findEnrolledStudentsByPeriod(@Param("periodId") Integer periodId);
+
+    @Query("SELECT DISTINCT u FROM User u")
+    Page<User> findAllDistinct(Pageable pageable);
 }

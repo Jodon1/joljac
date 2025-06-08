@@ -5,6 +5,7 @@ import com.example.dormmatching.entity.application.SelectionResult;
 import com.example.dormmatching.entity.record.AcademicRecord;
 import com.example.dormmatching.entity.record.HealthDiscipline;
 import com.example.dormmatching.entity.support.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -14,8 +15,10 @@ import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
+@JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
 @Entity
 @Setter
 @Getter
@@ -44,7 +47,9 @@ public class User {
 
     @ManyToOne
     @JoinColumn(name = "status_id", nullable = false)
+    @JsonIgnoreProperties("users")
     private StudentStatus status;
+
 
     @ManyToOne
     @JoinColumn(name = "admission_round_id")
@@ -87,8 +92,8 @@ public class User {
     @OneToMany(mappedBy = "user")
     private Set<DormApplication> applications;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private SelectionResult selectionResult;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private Set<SelectionResult> selectionResults = new HashSet<>();
 
     @Column(name = "refresh_token", length = 255)
     private String refreshToken;

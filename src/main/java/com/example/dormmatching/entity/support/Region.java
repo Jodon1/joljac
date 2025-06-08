@@ -2,12 +2,14 @@ package com.example.dormmatching.entity.support;
 
 import com.example.dormmatching.entity.user.User;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Set;
 
+@JsonIgnoreProperties({ "users", "hibernateLazyInitializer", "handler" })
 @Entity
 @Setter
 @Getter

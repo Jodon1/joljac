@@ -6,6 +6,8 @@ import com.example.dormmatching.entity.application.DormCapacity;
 import com.example.dormmatching.repository.ApplicationPeriodRepository;
 import com.example.dormmatching.repository.DormCapacityRepository;
 import com.example.dormmatching.service.DormCapacityService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,10 +45,15 @@ public class DormCapacityServiceImpl implements DormCapacityService {
 
         return capacityRepository.save(target);
     }
+    @Override
+    public List<DormCapacity> findByPeriodPeriodId(Integer periodId) {
+        return capacityRepository.findByPeriodPeriodId(periodId);
+    }
 
     @Override
-    public List<DormCapacity> getCapacitiesByPeriod(Integer periodId) {
-        return capacityRepository.findByPeriodPeriodId(periodId);
+    public Page<DormCapacity> getCapacitiesByPeriod(Integer periodId, Pageable pageable) {
+        // (필요하면 period 존재 검증)
+        return capacityRepository.findByPeriodPeriodId(periodId, pageable);
     }
 
     @Override

@@ -1,12 +1,16 @@
 package com.example.dormmatching.controller.manager;
 
-import com.example.dormmatching.dto.DormApplicationRequest;
-import com.example.dormmatching.dto.DormCapacityRequest;
-import com.example.dormmatching.dto.RegisterRequest;
+import com.example.dormmatching.dto.*;
 import com.example.dormmatching.dto.Response.ErrorResponse;
 import com.example.dormmatching.dto.Response.SuccessResponse;
+import com.example.dormmatching.entity.application.ApplicationPeriod;
 import com.example.dormmatching.entity.application.DormApplication;
 import com.example.dormmatching.entity.application.DormCapacity;
+import com.example.dormmatching.entity.application.SelectionResult;
+import com.example.dormmatching.entity.user.User;
+import com.example.dormmatching.repository.ApplicationPeriodRepository;
+import com.example.dormmatching.repository.SelectionResultRepository;
+import com.example.dormmatching.repository.UserRepository;
 import com.example.dormmatching.service.auth.AuthService;
 import com.example.dormmatching.service.DormApplicationService;
 import com.example.dormmatching.service.DormCapacityService;
@@ -14,12 +18,17 @@ import com.example.dormmatching.service.selection.SelectionService;
 import com.example.dormmatching.service.selection.SelectionService.SelectionSummary;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -31,6 +40,9 @@ public class AdminController {
     private final DormCapacityService capacityService;
     private final DormApplicationService applicationService;
     private final SelectionService selectionService;
+    private final UserRepository userRepository;
+    private final ApplicationPeriodRepository periodRepository;
+    private final SelectionResultRepository selectionResultRepository;
 
     // ───────────────────────────────────────────────────────────────────────────
     // 1) 관리자용: 사용자 생성 (기존 기능 그대로)
@@ -60,6 +72,49 @@ public class AdminController {
                     "서버 오류가 발생했습니다."
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    // 1b) 사용자 목록 조회
+    @GetMapping("/users")
+    public ResponseEntity<?> getUsers(
+            @RequestParam(name = "page", defaultValue = "1") int page
+    ) {
+        try {
+            Pageable pg = PageRequest.of(page - 1, 25, Sort.by("userId").ascending());
+            Page<User> userPage = userRepository.findAllDistinct(pg);
+
+            List<RegisterRequest> dtoList = userPage.getContent().stream().map(u -> {
+                RegisterRequest dto = new RegisterRequest();
+                dto.setStudentNumber(u.getStudentNumber());
+                dto.setName(u.getName());
+                dto.setStatusId(u.getStatus() != null ? u.getStatus().getStatusId() : null);
+                dto.setRoleId(u.getRole() != null ? u.getRole().getRoleId() : null);
+                dto.setBirthDate(u.getBirthDate());
+                dto.setGender(u.getGender());
+                dto.setAddress(u.getAddress());
+                dto.setInternational(u.getInternational());
+                dto.setPhoneNumber(u.getPhoneNumber());
+                dto.setDepartmentId(u.getDepartment() != null ? u.getDepartment().getDepartmentId() : null);
+                dto.setGrade(u.getGrade());
+                return dto;
+            }).collect(Collectors.toList());
+
+            return ResponseEntity.ok(
+                    new SuccessResponse<>(
+                            HttpStatus.OK.value(),
+                            true,
+                            "사용자 목록 조회 성공",
+                            dtoList
+                    )
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(
+                            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                            false,
+                            "사용자 목록 조회 중 오류가 발생했습니다."
+                    ));
         }
     }
 
@@ -102,14 +157,18 @@ public class AdminController {
 
     /** 해당 신청 기간에 설정된 모든 정원 정보 조회 */
     @GetMapping("/capacities/period/{periodId}")
-    public ResponseEntity<?> getCapacitiesByPeriod(@PathVariable Integer periodId) {
+    public ResponseEntity<?> getCapacitiesByPeriod(
+            @PathVariable Integer periodId,
+            @RequestParam(name="page", defaultValue="1") int page
+    ) {
         try {
-            List<DormCapacity> list = capacityService.getCapacitiesByPeriod(periodId);
-            SuccessResponse<List<DormCapacity>> body = new SuccessResponse<>(
+            Pageable pg = PageRequest.of(page - 1, 25, Sort.by("capacityId").ascending());
+            Page<DormCapacity> capPage = capacityService.getCapacitiesByPeriod(periodId, pg);
+            SuccessResponse<Page<DormCapacity>> body = new SuccessResponse<>(
                     HttpStatus.OK.value(),
                     true,
                     "정원 조회가 완료되었습니다.",
-                    list
+                    capPage
             );
             return ResponseEntity.ok(body);
         } catch (RuntimeException e) {
@@ -143,6 +202,154 @@ public class AdminController {
     //    여기서는 “신청 강제 취소” 하나만 예시로 띄워둡니다.
     //    (원래는 학생이 직접 신청 → 관리자는 조회하거나 강제 취소만 하도록 구현할 수 있습니다.)
     // ───────────────────────────────────────────────────────────────────────────
+
+    // 3) 신청 기간 목록 조회
+    @GetMapping("/periods")
+    public ResponseEntity<?> getPeriods(
+            @RequestParam(name="page", defaultValue="1") int page
+    ) {
+        try {
+            Pageable pg = PageRequest.of(page - 1, 25, Sort.by("periodId").descending());
+            Page<ApplicationPeriod> perPage = periodRepository.findAll(pg);
+            List<ApplicationPeriodResponse> dtoList = perPage.stream()
+                    .map(p -> ApplicationPeriodResponse.builder()
+                            .periodId(p.getPeriodId().longValue())
+                            .name(p.getName())
+                            .startDate(p.getStartDate())
+                            .endDate(p.getEndDate())
+                            .build())
+                    .collect(Collectors.toList());
+            SuccessResponse<List<ApplicationPeriodResponse>> body = new SuccessResponse<>(
+                    HttpStatus.OK.value(), true,
+                    "신청 기간 목록 조회 성공", dtoList
+            );
+            return ResponseEntity.ok(body);
+        } catch (Exception e) {
+            ErrorResponse error = new ErrorResponse(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(), false,
+                    "신청 기간 조회 중 오류가 발생했습니다."
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    // 4) 신청 기간 생성
+    @PostMapping("/periods")
+    public ResponseEntity<?> createPeriod(@Valid @RequestBody ApplicationPeriodRequest req) {
+        try {
+            ApplicationPeriod period = new ApplicationPeriod();
+            period.setName(req.getName());
+            period.setStartDate(req.getStartDate());
+            period.setEndDate(req.getEndDate());
+            ApplicationPeriod saved = periodRepository.save(period);
+            ApplicationPeriodResponse resp = ApplicationPeriodResponse.builder()
+                    .periodId(saved.getPeriodId().longValue())
+                    .name(saved.getName())
+                    .startDate(saved.getStartDate())
+                    .endDate(saved.getEndDate())
+                    .build();
+            SuccessResponse<ApplicationPeriodResponse> body = new SuccessResponse<>(
+                    HttpStatus.CREATED.value(), true,
+                    "신청 기간 생성 성공", resp
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(body);
+        } catch (IllegalArgumentException e) {
+            ErrorResponse error = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(), false,
+                    e.getMessage()
+            );
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            ErrorResponse error = new ErrorResponse(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(), false,
+                    "신청 기간 생성 중 서버 오류가 발생했습니다."
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    // 5) 신청 기간 수정
+    @PutMapping("/periods/{periodId}")
+    public ResponseEntity<?> updatePeriod(@PathVariable Integer periodId,
+                                          @Valid @RequestBody ApplicationPeriodRequest req) {
+        try {
+            ApplicationPeriod period = periodRepository.findById(periodId)
+                    .orElseThrow(() -> new IllegalArgumentException("ApplicationPeriod not found: " + periodId));
+            period.setName(req.getName());
+            period.setStartDate(req.getStartDate());
+            period.setEndDate(req.getEndDate());
+            ApplicationPeriod updated = periodRepository.save(period);
+            ApplicationPeriodResponse resp = ApplicationPeriodResponse.builder()
+                    .periodId(updated.getPeriodId().longValue())
+                    .name(updated.getName())
+                    .startDate(updated.getStartDate())
+                    .endDate(updated.getEndDate())
+                    .build();
+            SuccessResponse<ApplicationPeriodResponse> body = new SuccessResponse<>(
+                    HttpStatus.OK.value(), true,
+                    "신청 기간 수정 성공", resp
+            );
+            return ResponseEntity.ok(body);
+        } catch (IllegalArgumentException e) {
+            ErrorResponse error = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(), false,
+                    e.getMessage()
+            );
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            ErrorResponse error = new ErrorResponse(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(), false,
+                    "신청 기간 수정 중 서버 오류가 발생했습니다."
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    // 6) 신청 기간 삭제
+    @DeleteMapping("/periods/{periodId}")
+    public ResponseEntity<?> deletePeriod(@PathVariable Integer periodId) {
+        try {
+            periodRepository.deleteById(periodId);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            ErrorResponse error = new ErrorResponse(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(), false,
+                    "신청 기간 삭제 중 오류가 발생했습니다."
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    // 7) 신청 목록 조회
+    @GetMapping("/applications")
+    public ResponseEntity<?> getApplications(
+            @RequestParam Integer periodId,
+            @RequestParam(name="page", defaultValue="1") int page
+    ) {
+        try {
+            Pageable pg = PageRequest.of(page - 1, 25, Sort.by("appliedAt").descending());
+            Page<DormApplication> appPage = applicationService.getApplicationsByPeriod(periodId, pg);
+            List<Application> dtoList = appPage.stream().map(da -> {
+                Application dto = new Application();
+                dto.setUserId(da.getUser()     != null ? da.getUser().getUserId()     : null);
+                dto.setPeriodId(da.getPeriod() != null ? da.getPeriod().getPeriodId().longValue() : null);
+                dto.setAppliedAt(da.getAppliedAt() != null ? da.getAppliedAt().toString() : null);
+                dto.setStatus(Boolean.TRUE.equals(da.getProofSubmitted()) ? "제출완료" : "미제출");
+                return dto;
+            }).collect(Collectors.toList());
+            SuccessResponse<List<Application>> body = new SuccessResponse<>(
+                    HttpStatus.OK.value(), true,
+                    "신청 목록 조회 성공", dtoList
+            );
+            return ResponseEntity.ok(body);
+        } catch (Exception e) {
+            ErrorResponse error = new ErrorResponse(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(), false,
+                    "신청 목록 조회 중 오류가 발생했습니다."
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 
     /**
      * 특정 userId, periodId에 대해 기숙사 신청 강제 취소
@@ -207,6 +414,38 @@ public class AdminController {
                     "서버 오류가 발생했습니다."
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    // 10) 선발 결과 조회
+    @GetMapping("/selections/results")
+    public ResponseEntity<?> getSelectionResults(
+            @RequestParam Integer periodId,
+            @RequestParam(name="page", defaultValue="1") int page
+    ) {
+        try {
+            Pageable pg = PageRequest.of(page - 1, 25, Sort.by("selectionRank").ascending());
+            Page<SelectionResult> resPage =
+                    selectionResultRepository.findDistinctByPeriodPeriodId(periodId, pg);
+
+            SuccessResponse<Page<SelectionResult>> body = new SuccessResponse<>(
+                    HttpStatus.OK.value(),
+                    true,
+                    "선발 결과 조회 성공",
+                    resPage
+            );
+            return ResponseEntity.ok(body);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponse(HttpStatus.BAD_REQUEST.value(), false, e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(
+                            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                            false,
+                            "선발 결과 조회 중 오류가 발생했습니다."
+                    ));
         }
     }
 }

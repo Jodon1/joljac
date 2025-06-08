@@ -54,6 +54,9 @@ public class SelectionService {
 
     @Transactional
     public SelectionSummary runStudentSelection(Integer periodId) {
+        // 0) 이전 결과 삭제 (중복 INSERT 방지)
+        selectionResultRepository.deleteByPeriodPeriodId(periodId);
+
         // 1) 기간 정보 조회 및 마감 여부 확인
         ApplicationPeriod period = applicationPeriodRepository.findById(periodId)
                 .orElseThrow(() -> new RuntimeException("ApplicationPeriod not found: " + periodId));
@@ -61,10 +64,10 @@ public class SelectionService {
             throw new RuntimeException("아직 신청 기간이 마감되지 않았습니다: " + period.getEndDate());
         }
 
-        // 2) 해당 기간에 지원한 재학생·신입생·편입생·대학원생 등 전체 조회
+        // 2) 지원자 조회
         List<User> allApplicants = userRepository.findEnrolledStudentsByPeriod(periodId);
 
-        // 3) 남자/여자 지원자 분리
+        // 3) 성별별 분리
         List<User> maleApplicants = allApplicants.stream()
                 .filter(u -> "M".equalsIgnoreCase(u.getGender()))
                 .collect(Collectors.toList());
@@ -72,7 +75,7 @@ public class SelectionService {
                 .filter(u -> "F".equalsIgnoreCase(u.getGender()))
                 .collect(Collectors.toList());
 
-        // 4) DormCapacity에서 해당 기간의 성별 정원 조회
+        // 4) quota 조회
         List<DormCapacity> caps = dormCapacityRepository.findByPeriodPeriodId(periodId);
         int maleQuota = caps.stream()
                 .filter(c -> "M".equalsIgnoreCase(c.getGender()))
@@ -85,20 +88,15 @@ public class SelectionService {
                 .map(DormCapacity::getCapacity)
                 .orElse(0);
 
-        // Debug: quota 확인
-        System.out.println(">>> Debug: periodId=" + periodId +
-                ", maleQuota=" + maleQuota +
-                ", femaleQuota=" + femaleQuota);
-
-        // 5) 남자, 여자 각각 선발 로직 수행 (175점 이하 → 후보(candidates)로 보류 후, quota 미달 시 후보군에서 채우기)
+        // 5) 선발 로직
         List<SelectionResult> finalResults = new ArrayList<>();
         finalResults.addAll(selectByGenderPeriodAndQuota(maleApplicants, periodId, maleQuota));
         finalResults.addAll(selectByGenderPeriodAndQuota(femaleApplicants, periodId, femaleQuota));
 
-        // 6) 결과를 한꺼번에 저장
+        // 6) 저장
         selectionResultRepository.saveAll(finalResults);
 
-        // 7) 요약 정보 생성
+        // 7) 요약 생성
         SelectionSummary summary = new SelectionSummary();
         summary.setPeriodId(periodId);
         summary.setSelectedCount((int) finalResults.stream().filter(SelectionResult::getSelected).count());
