@@ -1,13 +1,15 @@
 package com.example.dormmatching.controller.manager;
 
+import com.example.dormmatching.dto.DormApplicationRequest;
 import com.example.dormmatching.dto.DormCapacityRequest;
 import com.example.dormmatching.dto.RegisterRequest;
 import com.example.dormmatching.dto.Response.ErrorResponse;
 import com.example.dormmatching.dto.Response.SuccessResponse;
+import com.example.dormmatching.entity.application.DormApplication;
 import com.example.dormmatching.entity.application.DormCapacity;
+import com.example.dormmatching.service.auth.AuthService;
 import com.example.dormmatching.service.DormApplicationService;
 import com.example.dormmatching.service.DormCapacityService;
-import com.example.dormmatching.service.auth.AuthService;
 import com.example.dormmatching.service.selection.SelectionService;
 import com.example.dormmatching.service.selection.SelectionService.SelectionSummary;
 import jakarta.validation.Valid;
@@ -63,6 +65,7 @@ public class AdminController {
 
     // ───────────────────────────────────────────────────────────────────────────
     // 2) 관리자용: 기숙사 정원 설정 / 조회 / 삭제
+    //    → 기존 DormCapacityController의 내용을 모두 이동
     // ───────────────────────────────────────────────────────────────────────────
 
     /**
@@ -136,13 +139,14 @@ public class AdminController {
     }
 
     // ───────────────────────────────────────────────────────────────────────────
-    // 3) 관리자용: 기숙사 신청 페이지(예: 검증용) 조회/삭제 등 (추가 기능 가능)
-    //    여기서는 “신청 강제 취소” 하나만 예시로 둡니다.
+    // 3) 관리자용: 기숙사 신청 자료(예: 검증용) 조회/삭제 등 (추가로 구현 가능)
+    //    여기서는 “신청 강제 취소” 하나만 예시로 띄워둡니다.
+    //    (원래는 학생이 직접 신청 → 관리자는 조회하거나 강제 취소만 하도록 구현할 수 있습니다.)
     // ───────────────────────────────────────────────────────────────────────────
 
     /**
      * 특정 userId, periodId에 대해 기숙사 신청 강제 취소
-     * (관리자 권한으로, 누군가 신청했으나 관리자가 직접 취소해야 하는 경우)
+     * (관리자 권한으로, 누군가 신청했으나 관리자가 직접 취소해야 하는 케이스 등)
      */
     @DeleteMapping("/applications/{userId}/{periodId}")
     public ResponseEntity<?> adminCancelApplication(
@@ -171,12 +175,12 @@ public class AdminController {
     }
 
     // ───────────────────────────────────────────────────────────────────────────
-    // 4) 관리자용: 선발 로직 실행 (전체 통합 선발)
+    // 4) 관리자용: 선발 로직 실행 (남/여 통합 선발)
     // ───────────────────────────────────────────────────────────────────────────
 
     /**
      * periodId에 대해 “전체 선발(남/여 합산)” 로직을 실행합니다.
-     * 예: POST /api/admin/selections/1
+     * 예: /api/admin/selections/1
      */
     @PostMapping("/selections/{periodId}")
     public ResponseEntity<?> runSelection(@PathVariable Integer periodId) {

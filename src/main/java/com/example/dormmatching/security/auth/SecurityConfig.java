@@ -1,4 +1,4 @@
-/*package com.example.dormmatching.security.auth;
+package com.example.dormmatching.security.auth;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -9,89 +9,43 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-@RequiredArgsConstructor
+
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtFilter;   // 기존에 작성하신 JWT 필터
-    private final CustomUserDetailsService userDetailsService; // UserDetailsService 구현체
+    private final JwtAuthenticationFilter jwtFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CSRF 비활성화
                 .csrf(csrf -> csrf.disable())
-
-                // 세션 사용하지 않음 (JWT 기준)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(
                         SessionCreationPolicy.STATELESS))
-
-                // 1) URL별 권한 설정
                 .authorizeHttpRequests(auth -> auth
-                        // (1) 로그인 페이지 및 정적 리소스는 무조건 허용
-                        .requestMatchers(
-                                "/admin/login",
-                                "/css/**",
-                                "/js/**",
-                                "/images/**"
-                        ).permitAll()
-
-                        // (2) /admin/** 나머지는 ROLE_ADMIN만 허용
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-
-                        // (3) JWT 없이 허용할 API
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
-
-                        // (4) /api/** 요청은 인증 필요 (JWT 필터 거침)
-                        .requestMatchers("/api/**").authenticated()
-
-                        // (5) 나머지 요청도 모두 인증 필요
+                        .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**")
+                        .permitAll()
                         .anyRequest().authenticated()
                 )
-
-                // 2) 폼 로그인 설정
-                .formLogin(form -> form
-                        .loginPage("/admin/login")             // GET: 로그인 폼
-                        .loginProcessingUrl("/admin/login")    // POST: 로그인 폼 제출
-                        .defaultSuccessUrl("/admin/dashboard", true)
-                        .failureUrl("/admin/login?error")
-                        .usernameParameter("username")
-                        .passwordParameter("password")
-                )
-
-                // 3) 로그아웃 설정
-                .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessUrl("/admin/login?logout")
-                        .invalidateHttpSession(true)
-                )
-
-                // 4) JWT 필터를 폼 인증 필터 앞에 등록
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-
+                .addFilterBefore(jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
-    // AuthenticationManager 빈 등록 (UserDetailsService + PasswordEncoder가 필요할 때 사용)
     @Bean
-    public AuthenticationManager authenticationManager(
+    public AuthenticationManager authManager(
             AuthenticationConfiguration cfg) throws Exception {
         return cfg.getAuthenticationManager();
     }
 
-    // UserDetailsService + PasswordEncoder 설정
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 }
-*/
